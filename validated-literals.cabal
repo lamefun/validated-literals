@@ -56,7 +56,8 @@ Library
   Default-Extensions:   
   Other-Extensions:     DefaultSignatures, MultiParamTypeClasses,
                         ExplicitForAll, ScopedTypeVariables,
-                        FunctionalDependencies, TemplateHaskell
+                        FunctionalDependencies, PatternSynonyms,
+                        TemplateHaskell
 
   Exposed-Modules:      ValidLiterals
 

@@ -69,6 +69,7 @@
 {-# LANGUAGE ExplicitForAll #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module ValidLiterals (
@@ -76,8 +77,7 @@ module ValidLiterals (
     FromLiteral (..),
     fallbackSpliceValid,
     LiteralAndValue,
-    lvValue,
-    lvLiteral
+    pattern LiteralAndValue
 ) where
 
 import Numeric.Natural (Natural)
@@ -103,7 +103,7 @@ import Language.Haskell.TH.Syntax (Q, TExp, Lift)
 valid :: FromLiteral l a => l -> Q (TExp a)
 valid lit =
     case fromLiteral lit of
-        Right val -> spliceValid (LiteralAndValue lit val)
+        Right val -> spliceValid (MkLiteralAndValue lit val)
         Left err -> fail err
 
 -- | Class for validated, compile-time conversions from type 'l' to 'a'.
@@ -141,23 +141,23 @@ class FromLiteral l a | a -> l where
     -- to easily implement 'spliceValid' using the 'l''s instance.
     spliceValid :: LiteralAndValue l a -> Q (TExp a)
     default spliceValid :: Lift a => LiteralAndValue l a -> Q (TExp a)
-    spliceValid (LiteralAndValue _ val) = [|| val ||]
+    spliceValid (MkLiteralAndValue _ val) = [|| val ||]
 
 -- | Fallback implementation of 'spliceValid' for cases where it's impossible
 -- to lift the resulting value. Uses the 'Lift' instance of the literal type 'l'
 -- to redo the conversion at runtime.
 fallbackSpliceValid
     :: (Lift l, FromLiteral l a) => LiteralAndValue l a -> Q (TExp a)
-fallbackSpliceValid (LiteralAndValue lit _) =
+fallbackSpliceValid (MkLiteralAndValue lit _) =
     [|| case fromLiteral lit of
             Right val -> val
             Left err -> error err ||]
 
 -- | Holds a value and the literal it was obtained from by 'fromLiteral'.
-data LiteralAndValue l a = LiteralAndValue {
-    lvLiteral :: l, -- ^ Gets the original literal.
-    lvValue   :: a  -- ^ Gets the value obtained from the literal.
-  }
+data LiteralAndValue l a = MkLiteralAndValue l a
+
+-- | Unpacks a 'LiteralAndValue'.
+pattern LiteralAndValue l a <- MkLiteralAndValue l a
 
 instance FromLiteral Integer Natural where
   fromLiteral integer =
